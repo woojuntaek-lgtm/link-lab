@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#151a22">
+<title>연결 설계실</title>
+<meta name="description" content="뉴런 하나는 XOR을 못 푼다? — 그래프와 다익스트라·벨만 포드, 최대 흐름과 최소 절단, 매개 중심성, 퍼셉트론과 선형 분리, 은닉층·활성화 함수·역전파를 손으로 체험하는 앱">
+<style>
+:root{--bg:#151a22;--card:#1c232e;--card2:#25303d;--fg:#eff3f8;--mut:#a3b0c2;--line:#33425a;
+--a:#7cc4ff;--b:#ff9b5c;--ok:#6fdc9a;--bad:#ff7d7d;--gold:#ffd166;--pur:#b79cff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.55}
+[hidden]{display:none!important}
+.wrap{max-width:560px;margin:0 auto;padding:12px 14px 40px}
+h1{font-size:1.2rem;margin:6px 0}
+h1 small{display:block;font-size:.76rem;color:var(--mut);font-weight:400}
+.tabs{display:flex;gap:5px;margin:10px 0}
+.tabs button{flex:1;padding:9px 2px;border:1px solid var(--line);background:var(--card);color:var(--mut);border-radius:10px;font-size:.82rem;font-weight:600}
+.tabs button.on{background:#24406e;color:#fff;border-color:var(--a)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+h2{font-size:1rem;margin:2px 0 8px}
+.note{font-size:.86rem;color:var(--mut);margin:8px 0 0}
+.note b{color:var(--fg)}
+.btn{padding:11px 14px;border-radius:12px;border:0;background:linear-gradient(135deg,#2f6fd0,#7cc4ff);color:#fff;font-weight:800;font-size:.95rem;flex:1}
+.btn.sec{background:var(--card2);border:1px solid var(--line);color:var(--fg);font-weight:700}
+.btn.sm{flex:none;padding:7px 11px;font-size:.82rem}
+.btn:disabled{opacity:.4}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row+.row{margin-top:8px}
+.pill{padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--fg);font-size:.84rem}
+.pill.on{border-color:var(--gold);background:#4a3e1a;color:#fff}
+.lbl{font-size:.8rem;color:var(--mut)}
+canvas{display:block;width:100%;border-radius:12px;background:#10141b;margin-top:8px}
+.say{background:#16304c;border-left:3px solid var(--a);border-radius:8px;padding:9px 11px;font-size:.92rem;margin-top:10px}
+.say b{color:#fff}
+.say.q{border-left-color:var(--b);background:#2e2118}
+.res{margin-top:10px;font-size:.92rem;border-radius:10px;padding:10px 12px}
+.res.g{background:#16352a;border:1px solid #2f7a52}
+.res.r{background:#3a1d1d;border:1px solid #8a3a3a}
+.res.y{background:#3a3218;border:1px solid #8a7a3a}
+.code{background:#0f131a;border:1px solid #26324a;border-radius:10px;padding:9px 11px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.65;white-space:pre;overflow-x:auto;margin-top:8px}
+.code .k{color:#ff9bd2}.code .s{color:#a5e38a}.code .c{color:#6b7a90}.code .n{color:#ffd166}.code .f{color:#7cc4ff}
+.out{background:#0b0e13;border-radius:10px;padding:8px 11px;margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;white-space:pre-wrap;word-break:break-all}
+.out .p{color:#6b7a90}.out .o{color:#6fdc9a}.out .w{color:#ffd166}.out .e{color:#ff7d7d}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opts button{text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--fg);font-size:.92rem}
+.opts button.right{border-color:#6fdc9a;background:#16352a}
+.opts button.wrong{border-color:#ff7d7d;background:#3a1d1d}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.stats div{background:var(--card2);border-radius:10px;padding:7px 6px;text-align:center;font-size:.74rem;color:var(--mut)}
+.stats div b{display:block;font-size:1.02rem;color:var(--fg);font-variant-numeric:tabular-nums}
+.sl{display:grid;grid-template-columns:70px 1fr 50px;gap:8px;align-items:center;font-size:.84rem;margin-top:6px}
+.sl b{text-align:right;font-variant-numeric:tabular-nums}
+.tt{width:100%;border-collapse:collapse;margin-top:8px;font-size:.84rem;font-variant-numeric:tabular-nums}
+.tt td,.tt th{border:1px solid var(--line);padding:5px 6px;text-align:center}
+.tt th{background:var(--card2);font-weight:600}
+.tt td.ok{background:#16352a;color:#6fdc9a;font-weight:700}
+.tt td.bad{background:#3a1d1d;color:#ff7d7d;font-weight:700}
+.tt td.fix{background:#16352a}
+.tt td.cur{background:#3a3218}
+input[type=range]{width:100%}
+input[type=text]{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#10141b;color:var(--fg);font-size:.92rem}
+.sum3{margin-top:12px;background:linear-gradient(135deg,#1d3358,#3a2a5a);border-radius:14px;padding:12px 14px}
+.sum3 ol{margin:4px 0;padding-left:20px;font-size:.92rem}
+.mine{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.mine div{display:flex;justify-content:space-between;gap:8px;background:var(--card2);border-radius:10px;padding:8px 10px;font-size:.88rem}
+.mine button{border:0;background:none;color:var(--mut);font-size:.9rem}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:999px;font-size:.9rem;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+footer{text-align:center;color:var(--mut);font-size:.78rem;margin-top:18px}
+footer a{color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🕸️ 연결 설계실<small>뉴런 하나는 XOR을 못 푼다? — 그래프와 인공 신경망</small></h1>
+<div class="tabs">
+  <button class="on" data-tab="t1">① 최단 경로</button>
+  <button data-tab="t2">② 흐름·거점</button>
+  <button data-tab="t3">③ 퍼셉트론</button>
+  <button data-tab="t4">④ 은닉층</button>
+</div>
+
+<!-- ① -->
+<section id="tab-t1">
+  <div class="card">
+    <h2>📕 사건 접수: 1969년의 책 한 권</h2>
+    <table class="tt"><tr><th>입력 x₁</th><th>입력 x₂</th><th>XOR (서로 다르면 1)</th></tr><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td></tr><tr><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>0</td></tr></table>
+    <div class="say q">초등학생도 푸는 이 규칙을 <b>뉴런 하나(퍼셉트론)</b>는 끝내 배우지 못했습니다(민스키·패퍼트 『Perceptrons』, 1969). 해결책은 <b>④ 은닉층</b>에서! 먼저 또 하나의 "연결" — 그래프부터 봅시다.</div>
+  </div>
+
+  <div class="card">
+    <h2>🗺️ 가장 짧은 길: 다익스트라</h2>
+    <p class="note" style="margin-top:0">S에서 출발. <b>아직 확정 안 된 곳 중 가장 가까운 곳</b>을 확정하고, 그곳을 거쳐 이웃이 짧아지면 고칩니다(<b>이완</b>).</p>
+    <canvas id="djCv"></canvas>
+    <table class="tt" id="djT"></table>
+    <div class="row" style="margin-top:8px"><button class="btn" id="djStep">▶ 한 단계</button><button class="btn sec sm" id="djReset">↺ 처음부터</button></div>
+    <div class="out" id="djOut"></div>
+  </div>
+
+  <div class="card">
+    <h2>❓ 퀴즈 ①</h2>
+    <div class="say q">위 그래프(S→A 4, S→B 1, B→A 2, A→T 1, B→T 6)에서 <b>S에서 T까지 최단 거리</b>는?</div>
+    <div class="opts" id="qz1"><button data-a="4">4</button><button data-a="5">5</button><button data-a="7">7</button></div>
+    <div id="qz1Msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>➖ 마이너스 비용: 벨만 포드</h2>
+    <p class="note" style="margin-top:0">빈 컨테이너 회수로 운송비가 상쇄되는 구간 B→A는 <b>−4</b>. 두 알고리즘으로 S→A를 구해 보세요.</p>
+    <div class="row"><button class="pill on" data-bf="dj">다익스트라</button><button class="pill" data-bf="bf">벨만 포드</button><label class="lbl" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="bfCyc"> A→B 1 추가 (음수 사이클)</label></div>
+    <canvas id="bfCv"></canvas>
+    <div class="out" id="bfOut"></div>
+    <div id="bfMsg"></div>
+  </div>
+</section>
+
+<!-- ② -->
+<section id="tab-t2" hidden>
+  <div class="card">
+    <h2>🚚 하루에 트럭 몇 대? 최대 흐름</h2>
+    <p class="note" style="margin-top:0">공장 S → 항구 T. 숫자는 도로의 <b>용량</b>(하루 최대 트럭 수). 흐름을 한 경로씩 더해 보세요(포드 풀커슨).</p>
+    <canvas id="mfCv"></canvas>
+    <div class="row" style="margin-top:8px"><button class="btn" id="mfStep">▶ 경로 하나 더 보내기</button><button class="btn sec sm" id="mfCut">✂️ 최소 절단 보기</button><button class="btn sec sm" id="mfReset">↺</button></div>
+    <div class="stats"><div>지금 보내는 트럭<b id="mfF">0</b></div><div>찾은 경로 수<b id="mfN">0</b></div><div>최소 절단<b id="mfC">-</b></div></div>
+    <div class="out" id="mfOut"></div>
+    <div id="mfMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>📍 끊기면 무너지는 거점: 매개 중심성</h2>
+    <p class="note" style="margin-top:0">거점을 <b>눌러서 막아</b> 보세요. 연결 수가 많은 C·D와 연결이 2개뿐인 H 중, 어디가 막혀야 망이 갈라질까요?</p>
+    <canvas id="ceCv"></canvas>
+    <table class="tt" id="ceT"></table>
+    <div class="row" style="margin-top:8px"><button class="btn sec sm" id="ceReset">↺ 모두 열기</button></div>
+    <div id="ceMsg"></div>
+  </div>
+</section>
+
+<!-- ③ -->
+<section id="tab-t3" hidden>
+  <div class="card">
+    <h2>🧠 뉴런 하나, 퍼셉트론</h2>
+    <p class="note" style="margin-top:0">w₁x₁ + w₂x₂ + b <b>&gt; 0</b>이면 1, 아니면 0. 손잡이(가중치·편향)를 돌려 목표 회로를 만들어 보세요.</p>
+    <div class="row"><span class="lbl">목표</span><button class="pill on" data-pt="and">AND</button><button class="pill" data-pt="or">OR</button><button class="pill" data-pt="nand">NAND</button><button class="pill" data-pt="xor">XOR</button></div>
+    <div class="sl"><span>w₁</span><input type="range" id="pw1" min="-2" max="2" step="0.1" value="1"><b id="pw1v">1</b></div>
+    <div class="sl"><span>w₂</span><input type="range" id="pw2" min="-2" max="2" step="0.1" value="1"><b id="pw2v">1</b></div>
+    <div class="sl"><span>편향 b</span><input type="range" id="pb" min="-3" max="3" step="0.1" value="-1.5"><b id="pbv">-1.5</b></div>
+    <canvas id="pcCv"></canvas>
+    <table class="tt" id="pcT"></table>
+    <div id="pcMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>❓ 퀴즈 ②</h2>
+    <div class="say q">가중치 둘 다 <b>1</b>, 편향 <b>−1.5</b>인 퍼셉트론. 합이 0보다 크면 1. 어떤 논리 회로일까요?</div>
+    <div class="opts" id="qz2"><button data-a="and">AND</button><button data-a="or">OR</button><button data-a="xor">XOR</button></div>
+    <div id="qz2Msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>🎲 XOR, 정말 직선 하나로는 안 될까?</h2>
+    <p class="note" style="margin-top:0">가중치와 편향을 무작위로 <b>10만 번</b> 뽑아 XOR 네 칸을 몇 개까지 맞히는지 세어 봅니다.</p>
+    <div class="row"><button class="btn" id="rxGo">🎲 10만 번 시도</button></div>
+    <canvas id="rxCv"></canvas>
+    <div id="rxMsg"></div>
+  </div>
+</section>
+
+<!-- ④ -->
+<section id="tab-t4" hidden>
+  <div class="card">
+    <h2>🏗️ 첫 장면의 비밀: 숨은 층</h2>
+    <p class="note" style="margin-top:0">숨은 뉴런 h₁ = <b>OR</b>, h₂ = <b>NAND</b>, 출력 = h₁ <b>AND</b> h₂. 입력을 골라 신호를 따라가 보세요.</p>
+    <div class="row"><span class="lbl">입력</span><button class="pill on" data-hx="00">0, 0</button><button class="pill" data-hx="01">0, 1</button><button class="pill" data-hx="10">1, 0</button><button class="pill" data-hx="11">1, 1</button></div>
+    <canvas id="hnCv"></canvas>
+    <canvas id="hpCv"></canvas>
+    <div id="hnMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>〰️ 활성화 함수와 기울기 소실</h2>
+    <div class="row"><button class="pill on" data-af="sig">시그모이드</button><button class="pill" data-af="relu">ReLU</button><button class="pill" data-af="lin">없음(선형)</button></div>
+    <canvas id="afCv"></canvas>
+    <div class="sl"><span>층 수</span><input type="range" id="afN" min="1" max="20" value="10"><b id="afNv">10</b></div>
+    <div class="stats"><div>한 층 최대 기울기<b id="afG">-</b></div><div>층 수만큼 곱하면<b id="afP">-</b></div><div>앞쪽 층 신호<b id="afS">-</b></div></div>
+    <div id="afMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>🔙 역전파로 XOR 배우기</h2>
+    <p class="note" style="margin-top:0">입력 2 → 숨은 뉴런 4 → 출력 1인 작은 신경망이 <b>처음엔 아무것도 모르는 상태</b>에서 XOR을 배웁니다. 오차를 출력 쪽부터 <b>연쇄 법칙</b>으로 거슬러 나눠 가중치를 고칩니다.</p>
+    <div class="sl"><span>학습률</span><input type="range" id="bpLr" min="0.1" max="2" step="0.1" value="0.5"><b id="bpLrv">0.5</b></div>
+    <div class="row" style="margin-top:6px"><button class="btn" id="bpGo">▶ 1,000번 학습</button><button class="btn sec sm" id="bpReset">↺ 새로 시작</button></div>
+    <canvas id="bpCv"></canvas>
+    <div class="stats"><div>학습 횟수<b id="bpN">0</b></div><div>오차(MSE)<b id="bpE">-</b></div><div>네 칸 정답<b id="bpA">-</b></div></div>
+    <div class="out" id="bpOut"></div>
+    <div class="say">∂오차/∂w = (∂중간값/∂w) × (∂출력/∂중간값) × (∂오차/∂출력) — 출력 쪽에서부터 곱해 가며 거슬러 오는 <b>역전파</b>, 그 기울기 반대로 학습률만큼 옮기는 <b>경사 하강법</b>.</div>
+  </div>
+
+  <div class="card">
+    <h2>🐍 파이썬으로 한 번에</h2>
+    <div class="code"><span class="k">import</span> networkx <span class="k">as</span> nx
+G = nx.DiGraph()
+G.add_weighted_edges_from([(<span class="s">"S"</span>,<span class="s">"A"</span>,<span class="n">4</span>), (<span class="s">"S"</span>,<span class="s">"B"</span>,<span class="n">1</span>), (<span class="s">"B"</span>,<span class="s">"A"</span>,<span class="n">2</span>), (<span class="s">"A"</span>,<span class="s">"T"</span>,<span class="n">1</span>), (<span class="s">"B"</span>,<span class="s">"T"</span>,<span class="n">6</span>)])
+nx.dijkstra_path(G, <span class="s">"S"</span>, <span class="s">"T"</span>)          <span class="c"># ['S','B','A','T'], 길이 4</span>
+nx.bellman_ford_path_length(N, <span class="s">"S"</span>, <span class="s">"A"</span>)  <span class="c"># 음수 간선 → 1</span>
+nx.maximum_flow_value(F, <span class="s">"S"</span>, <span class="s">"T"</span>)      <span class="c"># 15</span>
+nx.minimum_cut(F, <span class="s">"S"</span>, <span class="s">"T"</span>)             <span class="c"># 병목: A→T 5 + B→T 10</span>
+nx.betweenness_centrality(H, normalized=<span class="k">False</span>)  <span class="c"># C 8, H 9, D 8</span>
+
+<span class="k">from</span> sklearn.neural_network <span class="k">import</span> MLPClassifier   <span class="c"># 층 쌓기·역전파를 대신</span></div>
+  </div>
+
+  <div class="card">
+    <h2>📌 세 줄 정리</h2>
+    <div class="sum3"><ol>
+      <li>현실을 <b>노드와 간선</b>으로 옮기고, 최단 경로는 <b>다익스트라</b>, 음수 비용이 있으면 <b>벨만 포드</b>.</li>
+      <li>보낼 수 있는 최대량은 <b>최소 절단(병목)</b>이 정하고, 끊기면 무너지는 거점은 <b>매개 중심성</b>으로 찾는다.</li>
+      <li>뉴런 하나는 <b>직선 하나</b>, 층과 <b>활성화 함수</b>를 쌓아 XOR을 풀고, <b>역전파</b>로 오차를 나눠 배운다.</li>
+    </ol></div>
+  </div>
+
+  <div class="card">
+    <h2>🤔 생각해 볼 질문</h2>
+    <p class="note" style="margin-top:0">매일 다니는 길을 그래프로 그려 보세요. 연결은 적어도 <b>막히면 가장 곤란해지는 곳</b> — 매개 중심성이 가장 높은 곳은 어디일까요? (이 기기에만 저장)</p>
+    <div class="row" style="margin-top:8px"><input type="text" id="myIn" maxlength="60" placeholder="예: 출근길 ○○대교 — 우회로 없음"><button class="btn sm" id="myAdd">추가</button></div>
+    <div class="mine" id="mine"></div>
+  </div>
+</section>
+
+<footer>© 2026 정필 수심명 · <a href="https://blog.naver.com/omyman" target="_blank" rel="noopener">blog.naver.com/omyman</a><br>지능 08 부록 · 인터넷 없이 동작</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),1800);}
+const vib=n=>{try{navigator.vibrate&&navigator.vibrate(n);}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function prep(cv,ratio){const dpr=Math.min(2,window.devicePixelRatio||1),w=cv.clientWidth||320,h=Math.round(w*ratio);
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);return{c,w,h};}
+function T(c,s,x,y,col,size,al,bl,wt){c.fillStyle=col;c.font=`${wt||''} ${size||12}px -apple-system,"Malgun Gothic",sans-serif`;c.textAlign=al||'center';c.textBaseline=bl||'middle';c.fillText(s,x,y);}
+function single(sel,attr,fn){$$(sel).forEach(b=>b.onclick=()=>{$$(sel).forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset[attr]);});}
+function quiz(id,ans,fn){$$(`#${id} button`).forEach(b=>b.onclick=()=>{const ok=b.dataset.a===ans;$$(`#${id} button`).forEach(x=>x.className=x.dataset.a===ans?'right':x===b?'wrong':'');vib(ok?[30,40,60]:80);$(`#${id}Msg`).innerHTML=fn(ok);});}
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const CA='#7cc4ff',CB='#ff9b5c';
+
+/* 공용: 방향 그래프 그리기 (pos 0~1) */
+function drawGraph(cv,ratio,nodes,edges,opt){opt=opt||{};const{c,w,h}=prep(cv,ratio);const P=k=>[nodes[k][0]*w,nodes[k][1]*h];const R=opt.r||17;
+  edges.forEach(e=>{const[a,b]=[P(e.u),P(e.v)];const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;const bend=e.bend||0;const mx=(a[0]+b[0])/2-uy*bend,my=(a[1]+b[1])/2+ux*bend;
+    const x0=a[0]+ux*R,y0=a[1]+uy*R,x1=b[0]-ux*R,y1=b[1]-uy*R;c.strokeStyle=e.col||'#55667f';c.lineWidth=e.lw||2;c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo(mx,my,x1,y1);c.stroke();
+    if(!opt.undirected){const tx=x1-(mx-x1)*0,ty=y1;const ang=Math.atan2(y1-my,x1-mx);c.fillStyle=e.col||'#55667f';c.beginPath();c.moveTo(x1,y1);c.lineTo(x1-10*Math.cos(ang-.4),y1-10*Math.sin(ang-.4));c.lineTo(x1-10*Math.cos(ang+.4),y1-10*Math.sin(ang+.4));c.closePath();c.fill();}
+    if(e.lab!=null){const lx=(a[0]+b[0])/2-uy*(bend*.5+12),ly=(a[1]+b[1])/2+ux*(bend*.5+12);c.fillStyle='#10141b';c.fillRect(lx-14,ly-9,28,18);T(c,String(e.lab),lx,ly,e.lcol||'#ffd166',12,'center','middle','700');}});
+  Object.keys(nodes).forEach(k=>{const[x,y]=P(k);const st=(opt.nodeStyle&&opt.nodeStyle(k))||{};c.beginPath();c.arc(x,y,R,0,7);c.fillStyle=st.fill||'#24406e';c.fill();c.strokeStyle=st.stroke||'#7cc4ff';c.lineWidth=st.lw||2;c.stroke();T(c,k,x,y,'#fff',13,'center','middle','800');if(st.sub)T(c,st.sub,x,y+R+11,st.subc||'#ffd166',11,'center','middle','700');});
+  return{c,w,h,P};}
+
+/* ===== ① 다익스트라 ===== */
+const DN={S:[.12,.5],A:[.55,.18],B:[.55,.82],T:[.9,.5]};
+const DE=[{u:'S',v:'A',w:4},{u:'S',v:'B',w:1},{u:'B',v:'A',w:2},{u:'A',v:'T',w:1},{u:'B',v:'T',w:6}];
+let dj;function djInit(){dj={d:{S:0,A:Infinity,B:Infinity,T:Infinity},prev:{},done:new Set(),step:0,log:'<span class="p">S의 거리 0, 나머지는 ∞에서 출발</span>',cur:null,relax:[]};djDraw();}
+function djDraw(){const sp=new Set();if(dj.done.has('T')){let k='T';while(dj.prev[k]){sp.add(dj.prev[k]+k);k=dj.prev[k];}}
+  drawGraph($('#djCv'),.5,DN,DE.map(e=>({...e,lab:e.w,col:sp.has(e.u+e.v)?'#6fdc9a':dj.relax.includes(e.u+e.v)?'#ffd166':'#55667f',lw:sp.has(e.u+e.v)||dj.relax.includes(e.u+e.v)?3.5:2})),{nodeStyle:k=>({fill:dj.done.has(k)?'#1f5a3c':k===dj.cur?'#4a3e1a':'#24406e',stroke:dj.done.has(k)?'#6fdc9a':k===dj.cur?'#ffd166':'#7cc4ff',sub:dj.d[k]===Infinity?'∞':String(dj.d[k])})});
+  $('#djT').innerHTML='<tr><th>노드</th>'+Object.keys(DN).map(k=>`<th>${k}</th>`).join('')+'</tr><tr><td>거리</td>'+Object.keys(DN).map(k=>`<td class="${dj.done.has(k)?'fix':k===dj.cur?'cur':''}">${dj.d[k]===Infinity?'∞':dj.d[k]}${dj.done.has(k)?' ✔':''}</td>`).join('')+'</tr>';
+  $('#djOut').innerHTML=dj.log;$('#djStep').disabled=dj.done.size===4;}
+$('#djStep').onclick=()=>{const cand=Object.keys(DN).filter(k=>!dj.done.has(k));let u=cand.reduce((a,b)=>dj.d[a]<=dj.d[b]?a:b);dj.done.add(u);dj.cur=u;dj.relax=[];let lg=`<span class="w">${u} 확정</span> (거리 ${dj.d[u]}) <span class="p">— 미확정 중 가장 가까움</span>`;
+  DE.filter(e=>e.u===u&&!dj.done.has(e.v)).forEach(e=>{const nd=dj.d[u]+e.w;dj.relax.push(e.u+e.v);if(nd<dj.d[e.v]){lg+=`\n  이완 ${e.v}: ${dj.d[e.v]===Infinity?'∞':dj.d[e.v]} → <span class="o">${nd}</span>  (${u} 거쳐 ${dj.d[u]}+${e.w})`;dj.d[e.v]=nd;dj.prev[e.v]=u;}else lg+=`\n  ${e.v}: ${dj.d[u]}+${e.w}=${nd} ≥ ${dj.d[e.v]} 그대로`;});
+  if(dj.done.size===4){let k='T',p=['T'];while(dj.prev[k]){k=dj.prev[k];p.unshift(k);}lg+=`\n\n<span class="o">최단 경로 ${p.join(' → ')} = ${dj.d.T}</span>`;}
+  dj.log+='\n'+lg;djDraw();vib(15);};
+$('#djReset').onclick=djInit;
+quiz('qz1','4',ok=>`<div class="res ${ok?'g':'r'}">${ok?'정답!':'정답은 <b>4</b>입니다.'} S→B 1, B→A 2, A→T 1. 돌아가는 것 같아도 합은 <b>4</b>. 다익스트라는 가장 가까운 B를 먼저 확정하고, B를 거쳐 A를 4에서 <b>3</b>으로 고칩니다. 간선 수가 적은 길(S→A→T = 5)과 가중치 합이 작은 길은 다릅니다. 위에서 "한 단계"를 눌러 확인해 보세요.</div>`);
+
+/* ===== ① 벨만 포드 ===== */
+let bfM='dj';const BN={S:[.12,.5],A:[.6,.2],B:[.6,.8]};
+function bfRun(){const cyc=$('#bfCyc').checked;const E=[{u:'S',v:'A',w:2},{u:'S',v:'B',w:5},{u:'B',v:'A',w:-4}];if(cyc)E.push({u:'A',v:'B',w:1,bend:18});
+  let log='',res;
+  if(bfM==='dj'){const d={S:0,A:Infinity,B:Infinity},done=new Set();const order=[];for(let it=0;it<3;it++){const u=Object.keys(d).filter(k=>!done.has(k)).reduce((a,b)=>d[a]<=d[b]?a:b);done.add(u);order.push(`${u}(${d[u]})`);E.filter(e=>e.u===u&&!done.has(e.v)).forEach(e=>{if(d[u]+e.w<d[e.v])d[e.v]=d[u]+e.w;});}
+    log=`<span class="p">확정 순서:</span> ${order.join(' → ')}\n<span class="p">A는 2로 먼저 확정 → 나중에 B(5)를 확정해도 A는 다시 안 봄</span>\n다익스트라 S→A = <span class="e">2</span>`;res={v:2,ok:false};}
+  else{const d={S:0,A:Infinity,B:Infinity};const n=3;for(let it=1;it<=n-1;it++){let ch=[];E.forEach(e=>{if(d[e.u]+e.w<d[e.v]){d[e.v]=d[e.u]+e.w;ch.push(`${e.v}=${d[e.v]}`);}});log+=`<span class="p">${it}회차 (모든 간선 확인):</span> ${ch.length?ch.join(', '):'변화 없음'}\n`;}
+    let neg=false;E.forEach(e=>{if(d[e.u]+e.w<d[e.v])neg=true;});log+=`<span class="p">노드 수−1 = ${n-1}번 반복 후 한 번 더 확인:</span> ${neg?'<span class="e">또 줄어듦!</span>':'변화 없음'}\n`;
+    log+=neg?`<span class="e">⚠ 음수 사이클 경고 — 최단 거리가 정의되지 않음</span>`:`벨만 포드 S→A = <span class="o">${d.A}</span>  (S→B→A = 5 − 4)`;res={v:d.A,ok:!neg,neg};}
+  drawGraph($('#bfCv'),.42,BN,E.map(e=>({...e,lab:e.w,lcol:e.w<0?'#ff7d7d':'#ffd166',col:e.w<0?'#ff7d7d':'#55667f'})),{});
+  $('#bfOut').innerHTML=log;$('#bfMsg').innerHTML=bfM==='dj'?`<div class="res r">다익스트라는 가까운 A를 <b>2로 먼저 확정</b>해 버립니다. 하지만 B를 거치면 5 − 4 = <b>1</b>. 한번 확정하면 다시 안 보니 음수 간선을 놓칩니다.</div>`
+    :res.neg?`<div class="res r">A→B 1, B→A −4를 돌 때마다 비용이 −3씩 끝없이 줄어듭니다 — <b>음수 사이클</b>. 노드 수−1번 뒤에도 값이 줄면 이를 경고합니다.</div>`:`<div class="res g">벨만 포드는 <b>모든 간선</b>을 노드 수−1번 반복해 다시 확인하므로 음수 간선도 반영합니다. 정답 <b>1</b>.</div>`;}
+single('[data-bf]','bf',v=>{bfM=v;bfRun();});$('#bfCyc').onchange=bfRun;
+
+/* ===== ② 최대 흐름 ===== */
+const MN={S:[.1,.5],A:[.45,.18],B:[.45,.82],T:[.9,.5]};
+const ME=[{u:'S',v:'A',cap:10},{u:'S',v:'B',cap:5},{u:'A',v:'B',cap:15},{u:'A',v:'T',cap:5},{u:'B',v:'T',cap:10}];
+const MP=[[['S','A','T'],'간선 수가 가장 적은 길'],[['S','B','T'],''],[['S','A','B','T'],'']];
+let mf={k:0,flow:{},cut:false};
+function mfReset(){mf={k:0,flow:{},cut:false,log:''};ME.forEach(e=>mf.flow[e.u+e.v]=0);mfDraw();$('#mfOut').innerHTML='<span class="p">아직 아무것도 보내지 않았습니다.</span>';$('#mfMsg').innerHTML='';}
+function mfDraw(){const tot=mf.flow.AT+mf.flow.BT;const cutE=['AT','BT'];
+  drawGraph($('#mfCv'),.52,MN,ME.map(e=>{const f=mf.flow[e.u+e.v],full=f===e.cap;const isCut=mf.cut&&cutE.includes(e.u+e.v);return{...e,lab:`${f}/${e.cap}`,lcol:full?'#ff7d7d':f?'#6fdc9a':'#a3b0c2',col:isCut?'#ff7d7d':f?'#6fdc9a':'#55667f',lw:isCut?5:2+f/3};}),{r:18});
+  if(mf.cut){const{c,w,h}={c:$('#mfCv').getContext('2d'),w:$('#mfCv').clientWidth,h:$('#mfCv').clientHeight};c.strokeStyle='#ff7d7d';c.setLineDash([6,4]);c.lineWidth=2;c.beginPath();c.moveTo(w*.7,8);c.lineTo(w*.7,h-8);c.stroke();c.setLineDash([]);T(c,'최소 절단',w*.7,h-14,'#ff7d7d',11,'center','middle','700');}
+  $('#mfF').textContent=tot+'대';$('#mfN').textContent=mf.k;$('#mfC').textContent=mf.cut?'5 + 10 = 15':'-';$('#mfStep').disabled=mf.k>=MP.length;}
+$('#mfStep').onclick=()=>{if(mf.k>=MP.length)return;const[p,note]=MP[mf.k];const es=[];for(let i=0;i<p.length-1;i++)es.push(ME.find(e=>e.u===p[i]&&e.v===p[i+1]));const room=Math.min(...es.map(e=>e.cap-mf.flow[e.u+e.v]));es.forEach(e=>mf.flow[e.u+e.v]+=room);mf.k++;mfDraw();vib(20);
+  const tot=mf.flow.AT+mf.flow.BT;mf.log=(mf.log||'')+`${mf.k===1?'':'\n'}경로 ${mf.k}: ${p.join('→')}  <span class="p">남은 용량 중 최소(병목)</span> = <span class="w">${room}</span>  → 합계 <span class="o">${tot}대</span>${note?` <span class="p">(${note})</span>`:''}`;$('#mfOut').innerHTML=mf.log;
+  $('#mfMsg').innerHTML=mf.k===1?`<div class="res y">간선 수가 가장 적은 길 S→A→T로만 보내면 <b>용량 5짜리 도로에 막혀 하루 5대</b>뿐입니다. 길을 나눠 써 보세요.</div>`:mf.k<3?`<div class="res y">길을 나눠 쓰니 ${tot}대. 아직 남은 길이 있습니다.</div>`
+    :`<div class="res g">S에서 T까지 더 보낼 경로가 없습니다 — 최대 흐름 <b>15대</b>. "최소 절단 보기"를 눌러 병목을 확인하세요.</div>`;};
+$('#mfCut').onclick=()=>{mf.cut=!mf.cut;mfDraw();if(mf.cut)$('#mfMsg').innerHTML=`<div class="res g">S·A·B와 T를 갈라놓는 간선들의 용량 합 중 가장 작은 것 — <b>최소 절단</b> = 항구로 들어가는 A→T <b>5</b> + B→T <b>10</b> = <b>15</b>. 최대 흐름과 정확히 같습니다. 이곳이 <b>병목</b>: 늘리려면 이 두 도로를 넓혀야 합니다.</div>`;};
+$('#mfReset').onclick=mfReset;
+
+/* ===== ② 중심성 ===== */
+const CN={A:[.08,.25],B:[.08,.75],C:[.3,.5],H:[.5,.5],D:[.7,.5],E:[.92,.25],F:[.92,.75]};
+const CEG=[['A','B'],['A','C'],['B','C'],['C','H'],['H','D'],['D','E'],['D','F'],['E','F']];
+let ceBlocked=new Set();
+function bfsAll(nodes,adj){/* betweenness (Brandes, unnormalized, undirected) */const bc={};nodes.forEach(n=>bc[n]=0);
+  nodes.forEach(s=>{const S=[],P={},sig={},d={};nodes.forEach(n=>{P[n]=[];sig[n]=0;d[n]=-1;});sig[s]=1;d[s]=0;const Q=[s];while(Q.length){const v=Q.shift();S.push(v);adj[v].forEach(w=>{if(d[w]<0){Q.push(w);d[w]=d[v]+1;}if(d[w]===d[v]+1){sig[w]+=sig[v];P[w].push(v);}});}
+    const del={};nodes.forEach(n=>del[n]=0);while(S.length){const w=S.pop();P[w].forEach(v=>del[v]+=sig[v]/sig[w]*(1+del[w]));if(w!==s)bc[w]+=del[w];}});
+  nodes.forEach(n=>bc[n]/=2);return bc;}
+function comps(nodes,adj){const seen=new Set();let k=0;nodes.forEach(n=>{if(seen.has(n))return;k++;const st=[n];seen.add(n);while(st.length){const v=st.pop();adj[v].forEach(w=>{if(!seen.has(w)){seen.add(w);st.push(w);}});}});return k;}
+function ceDraw(){const nodes=Object.keys(CN).filter(n=>!ceBlocked.has(n));const adj={};nodes.forEach(n=>adj[n]=[]);CEG.forEach(([u,v])=>{if(adj[u]&&adj[v]){adj[u].push(v);adj[v].push(u);}});
+  const bc=bfsAll(nodes,adj),cc=comps(nodes,adj);const full=(()=>{const n=Object.keys(CN),a={};n.forEach(x=>a[x]=[]);CEG.forEach(([u,v])=>{a[u].push(v);a[v].push(u);});return{bc:bfsAll(n,a),a};})();
+  const g=drawGraph($('#ceCv'),.42,CN,CEG.map(([u,v])=>({u,v,col:ceBlocked.has(u)||ceBlocked.has(v)?'#33425a':'#7cc4ff99',lw:2.5})),{undirected:true,r:16,nodeStyle:k=>ceBlocked.has(k)?{fill:'#3a1d1d',stroke:'#ff7d7d',sub:'⛔'}:{fill:k==='H'?'#4a3e1a':'#24406e',stroke:k==='H'?'#ffd166':'#7cc4ff'}});
+  $('#ceT').innerHTML='<tr><th>거점</th>'+Object.keys(CN).map(k=>`<th>${k}</th>`).join('')+'</tr><tr><td>연결 수</td>'+Object.keys(CN).map(k=>`<td>${full.a[k].length}</td>`).join('')+'</tr><tr><td>매개 중심성</td>'+Object.keys(CN).map(k=>`<td class="${full.bc[k]>=9?'bad':full.bc[k]>0?'cur':''}">${full.bc[k]}</td>`).join('')+'</tr>';
+  let msg;if(!ceBlocked.size)msg=`<div class="res y">H는 연결이 <b>2개뿐</b>인데 매개 중심성 <b>9</b>로 최고 — 왼쪽 세 곳(A·B·C)과 오른쪽 세 곳(D·E·F)을 잇는 <b>3 × 3 = 9쌍</b>의 최단 경로가 모두 H를 지납니다. 거점을 눌러 막아 보세요.</div>`;
+  else msg=`<div class="res ${cc>1?'r':'g'}">${[...ceBlocked].join(', ')} 막음 → 망이 <b>${cc}조각</b>${cc>1?'으로 갈라졌습니다!':' 그대로 이어져 있습니다.'} ${ceBlocked.has('H')&&ceBlocked.size===1?'연결은 적어도 <b>매개 중심성이 높은 거점</b>이 마비되면 네트워크가 둘로 갈라집니다.':''}</div>`;
+  $('#ceMsg').innerHTML=msg;return g;}
+$('#ceCv').addEventListener('click',e=>{const r=$('#ceCv').getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;let best=null,bd=.08;Object.entries(CN).forEach(([k,[px,py]])=>{const d=Math.hypot(px-x,(py-y)*r.height/r.width);if(d<bd){bd=d;best=k;}});if(!best)return;
+  ceBlocked.has(best)?ceBlocked.delete(best):ceBlocked.add(best);ceDraw();vib(20);});
+$('#ceReset').onclick=()=>{ceBlocked=new Set();ceDraw();};
+
+/* ===== ③ 퍼셉트론 ===== */
+const TG={and:[0,0,0,1],or:[0,1,1,1],nand:[1,1,1,0],xor:[0,1,1,0]};const XS=[[0,0],[0,1],[1,0],[1,1]];let ptT='and';
+function pcDraw(){const w1=+$('#pw1').value,w2=+$('#pw2').value,b=+$('#pb').value;$('#pw1v').textContent=w1;$('#pw2v').textContent=w2;$('#pbv').textContent=b;
+  const out=XS.map(([x1,x2])=>w1*x1+w2*x2+b>0?1:0),tg=TG[ptT];const ok=out.filter((o,i)=>o===tg[i]).length;
+  $('#pcT').innerHTML='<tr><th>x₁, x₂</th><th>w₁x₁+w₂x₂+b</th><th>출력</th><th>목표 '+ptT.toUpperCase()+'</th></tr>'+XS.map(([x1,x2],i)=>{const s=w1*x1+w2*x2+b;return `<tr><td>${x1}, ${x2}</td><td>${(Math.round(s*100)/100)}</td><td>${out[i]}</td><td class="${out[i]===tg[i]?'ok':'bad'}">${tg[i]}</td></tr>`;}).join('');
+  const{c,w,h}=prep($('#pcCv'),.62);const pad=40,S=Math.min(w-2*pad,h-2*pad)*.85,ox=(w-S)/2,oy=(h+S)/2;const sx=x=>ox+(x+.25)/1.5*S,sy=y=>oy-(y+.25)/1.5*S;
+  for(let px=0;px<w;px+=5)for(let py=0;py<h;py+=5){const x=-.25+(px-ox)/S*1.5,y=-.25+(oy-py)/S*1.5;c.fillStyle=w1*x+w2*y+b>0?'#5a3a2422':'#1d355422';c.fillRect(px,py,5,5);}
+  c.strokeStyle='#33425a';c.beginPath();c.moveTo(sx(-.2),sy(0));c.lineTo(sx(1.2),sy(0));c.moveTo(sx(0),sy(-.2));c.lineTo(sx(0),sy(1.2));c.stroke();T(c,'x₁',sx(1.2),sy(0)+12,'#a3b0c2',11);T(c,'x₂',sx(0)-12,sy(1.2),'#a3b0c2',11);
+  if(Math.abs(w2)>1e-9||Math.abs(w1)>1e-9){c.strokeStyle='#ffd166';c.lineWidth=3;c.beginPath();if(Math.abs(w2)>1e-9){const y=x=>(-b-w1*x)/w2;c.moveTo(sx(-.25),sy(y(-.25)));c.lineTo(sx(1.25),sy(y(1.25)));}else{const x=-b/w1;c.moveTo(sx(x),sy(-.25));c.lineTo(sx(x),sy(1.25));}c.stroke();}
+  XS.forEach(([x1,x2],i)=>{c.beginPath();c.arc(sx(x1),sy(x2),13,0,7);c.fillStyle=tg[i]?CB:CA;c.fill();c.strokeStyle=out[i]===tg[i]?'#6fdc9a':'#ff7d7d';c.lineWidth=3;c.stroke();T(c,String(tg[i]),sx(x1),sy(x2),'#10141b',12,'center','middle','800');});
+  T(c,'🟧 목표 1  🟦 목표 0  · 노란 직선 = 경계',w/2,12,'#a3b0c2',10);
+  $('#pcMsg').innerHTML=ok===4?`<div class="res g"><b>${ptT.toUpperCase()}</b> 완성! 직선 하나로 1과 0이 깔끔히 갈렸습니다. 편향 b는 <b>문턱의 높이</b>를 정합니다.</div>`
+    :ptT==='xor'?`<div class="res r">XOR은 1(🟧)과 0(🟦)이 <b>대각선으로 엇갈려</b> 있어, 어떻게 직선을 그어도 한쪽에 둘을 모을 수 없습니다. 지금 ${ok}/4 — 최대 <b>3칸</b>까지만 맞힙니다(선형 분리 불가).</div>`
+    :`<div class="res y">${ok}/4 맞음. 손잡이를 더 돌려 보세요.${ptT==='or'?' (힌트: 가중치 1, 1에 편향 −0.5)':ptT==='nand'?' (힌트: 가중치 −1, −1에 편향 1.5)':''}</div>`;}
+['pw1','pw2','pb'].forEach(id=>$('#'+id).oninput=pcDraw);single('[data-pt]','pt',v=>{ptT=v;pcDraw();});
+quiz('qz2','and',ok=>`<div class="res ${ok?'g':'r'}">${ok?'정답!':'정답은 <b>AND</b>입니다.'} (0,0) → −1.5, 하나만 1 → −0.5로 모두 0. 둘 다 1일 때만 0.5가 되어 1. 편향을 <b>−0.5</b>로 바꾸면 하나만 1이어도 0.5가 되니 <b>OR</b>. 위에서 편향 슬라이더로 확인해 보세요.</div>`);
+
+/* ===== ③ 무작위 XOR ===== */
+$('#rxGo').onclick=()=>{const r=rng(Date.now()&0xffff),cnt=[0,0,0,0,0];for(let k=0;k<100000;k++){const w1=r()*8-4,w2=r()*8-4,b=r()*8-4;let ok=0;XS.forEach(([x1,x2],i)=>{if((w1*x1+w2*x2+b>0?1:0)===TG.xor[i])ok++;});cnt[ok]++;}
+  const{c,w,h}=prep($('#rxCv'),.42);const L=30,R=w-12,Tp=14,B=h-26,bw=(R-L)/5,mx=Math.max(...cnt);cnt.forEach((v,i)=>{const hh=v/mx*(B-Tp);c.fillStyle=i===4?'#ff7d7d':i===3?'#ffd166':CA;c.fillRect(L+i*bw+bw*.15,B-hh,bw*.7,hh);T(c,v.toLocaleString(),L+i*bw+bw/2,B-hh-8,'#eff3f8',10);T(c,i+'칸',L+i*bw+bw/2,B+12,'#a3b0c2',10);});
+  vib([20,30,20]);$('#rxMsg').innerHTML=`<div class="res r">10만 번 중 <b>4칸 모두</b> 맞힌 경우: <b>${cnt[4]}번</b>. 최고는 3칸(${cnt[3].toLocaleString()}번). 직선 하나로 나눌 수 있는 <b>선형 분리</b> 문제가 아니기 때문입니다 — 첫 장면의 책이 짚은 한계.</div>`;};
+
+/* ===== ④ 은닉층 ===== */
+let hx='00';const step=v=>v>0?1:0;
+function hnDraw(){const x1=+hx[0],x2=+hx[1];const h1=step(x1+x2-.5),h2=step(-x1-x2+1.5),y=step(h1+h2-1.5);
+  const{c,w,h}=prep($('#hnCv'),.66);const L=[[w*.12,h*.3],[w*.12,h*.7]],H=[[w*.5,h*.2],[w*.5,h*.7]],O=[w*.86,h*.45];
+  const edge=(a,b,wt,on)=>{c.strokeStyle=on?'#ffd166':'#33425a';c.lineWidth=on?3:1.5;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();const mx=a[0]*.62+b[0]*.38,my=a[1]*.62+b[1]*.38;c.fillStyle='#10141b';c.fillRect(mx-13,my-8,26,16);T(c,wt,mx,my,on?'#ffd166':'#a3b0c2',10);};
+  edge(L[0],H[0],'1',x1);edge(L[1],H[0],'1',x2);edge(L[0],H[1],'−1',x1);edge(L[1],H[1],'−1',x2);edge(H[0],O,'1',h1);edge(H[1],O,'1',h2);
+  const node=(p,v,lab,sub,col)=>{c.beginPath();c.arc(p[0],p[1],22,0,7);c.fillStyle=v?col:'#25303d';c.fill();c.strokeStyle=col;c.lineWidth=2;c.stroke();T(c,String(v),p[0],p[1],v?'#10141b':'#eff3f8',15,'center','middle','800');T(c,lab,p[0],p[1]-32,'#eff3f8',11,'center','middle','700');if(sub)T(c,sub,p[0],p[1]+34,'#a3b0c2',10);};
+  node(L[0],x1,'x₁','',CA);node(L[1],x2,'x₂','',CA);node(H[0],h1,'h₁ = OR','b = −0.5','#b79cff');node(H[1],h2,'h₂ = NAND','b = 1.5','#b79cff');node(O,y,'출력 AND','b = −1.5','#6fdc9a');
+  T(c,'입력층',w*.12,h-8,'#a3b0c2',10);T(c,'은닉층',w*.5,h-8,'#a3b0c2',10);T(c,'출력층',w*.86,h-8,'#a3b0c2',10);
+  /* 평면 */
+  const g=prep($('#hpCv'),.55),C2=g.c,W=g.w,Hh=g.h;const S=Math.min(W*.6,Hh-34),ox=(W-S)/2,oy=Hh-8;const sx=v=>ox+(v+.25)/1.5*S,sy=v=>oy-(v+.25)/1.5*S;
+  for(let px=ox;px<ox+S;px+=4)for(let py=oy-S;py<oy;py+=4){const a=-.25+(px-ox)/S*1.5,b=-.25+(oy-py)/S*1.5;const yy=step(step(a+b-.5)+step(-a-b+1.5)-1.5);C2.fillStyle=yy?'#5a3a2455':'#1d355455';C2.fillRect(px,py,4,4);}
+  C2.strokeStyle='#b79cff';C2.lineWidth=2.5;[[[-.25,.75],[.75,-.25]],[[.25,1.25],[1.25,.25]]].forEach(([p0,p1])=>{C2.beginPath();C2.moveTo(sx(p0[0]),sy(p0[1]));C2.lineTo(sx(p1[0]),sy(p1[1]));C2.stroke();});
+  XS.forEach(([a,b],i)=>{C2.beginPath();C2.arc(sx(a),sy(b),11,0,7);C2.fillStyle=TG.xor[i]?CB:CA;C2.fill();if(a===x1&&b===x2){C2.strokeStyle='#ffd166';C2.lineWidth=3;C2.stroke();}});
+  T(C2,'직선 두 개(h₁, h₂) 사이 띠만 1',W/2,10,'#b79cff',11);
+  $('#hnMsg').innerHTML=`<div class="res g">입력 (${x1}, ${x2}) → h₁(OR) = ${h1}, h₂(NAND) = ${h2} → 출력(AND) = <b>${y}</b> ${y===TG.xor[XS.findIndex(p=>p[0]===x1&&p[1]===x2)]?'✔ XOR과 일치':''}. 0,0이면 OR이 0, 1,1이면 NAND가 0이라 출력 0 — 직선 두 개를 그어 <b>가운데 띠만</b> 고른 셈입니다. 층을 쌓으면 공간을 접고 비틀어 직선으로 나눌 수 있게 바꿉니다 — <b>다층 퍼셉트론</b>, 딥러닝의 출발점.</div>`;}
+single('[data-hx]','hx',v=>{hx=v;hnDraw();});
+
+/* ===== ④ 활성화 ===== */
+let afM='sig';const sig=x=>1/(1+Math.exp(-x));
+function afDraw(){const n=+$('#afN').value;$('#afNv').textContent=n;const{c,w,h}=prep($('#afCv'),.48);const L=20,R=w-14,Tp=14,B=h-22,sx=x=>L+(x+6)/12*(R-L),sy=y=>B-(y+.2)/1.4*(B-Tp);
+  c.strokeStyle='#33425a';c.beginPath();c.moveTo(L,sy(0));c.lineTo(R,sy(0));c.moveTo(sx(0),Tp);c.lineTo(sx(0),B);c.stroke();T(c,'1',sx(0)-8,sy(1),'#a3b0c2',10,'right');
+  const f=afM==='sig'?sig:afM==='relu'?x=>Math.max(0,x)/5:x=>x/5,df=afM==='sig'?x=>sig(x)*(1-sig(x)):afM==='relu'?x=>x>0?1:0:()=>1;
+  c.strokeStyle=CA;c.lineWidth=2.5;c.beginPath();for(let i=0;i<=200;i++){const x=-6+i*.06;i?c.lineTo(sx(x),sy(f(x))):c.moveTo(sx(x),sy(f(x)));}c.stroke();
+  c.strokeStyle=CB;c.setLineDash([5,3]);c.beginPath();for(let i=0;i<=200;i++){const x=-6+i*.06;const v=Math.min(1.15,df(x));i?c.lineTo(sx(x),sy(v)):c.moveTo(sx(x),sy(v));}c.stroke();c.setLineDash([]);
+  T(c,afM==='sig'?'시그모이드':afM==='relu'?'ReLU (÷5로 축소 표시)':'선형 (÷5 표시)',R,Tp+4,CA,10,'right');T(c,'기울기 (점선)',R,Tp+18,CB,10,'right');
+  const g=afM==='sig'?.25:1,p=Math.pow(g,n);$('#afG').textContent=g;$('#afP').textContent=p<1e-3?p.toExponential(1):String(p);$('#afS').textContent=p<1e-3?'거의 0':'그대로';$('#afS').style.color=p<1e-3?'#ff7d7d':'#6fdc9a';
+  $('#afMsg').innerHTML=afM==='lin'?`<div class="res r">활성화 함수 없이 곱하고 더하기만 하면, 층을 ${n}개 쌓아도 <b>곱하고 더하는 식 하나</b>로 합쳐집니다(선형 × 선형 = 선형). XOR을 못 풉니다.</div>`
+    :afM==='sig'?`<div class="res ${n>=5?'r':'y'}">시그모이드 기울기는 아무리 커도 <b>0.25</b>. ${n}층이면 0.25<sup>${n}</sup> = <b>${p<1e-3?p.toExponential(1):p}</b>${n===10?' (약 백만분의 1)':''} — 앞쪽 층까지 신호가 거의 닿지 않는 <b>기울기 소실</b>.</div>`
+    :`<div class="res g">ReLU는 양수에서 기울기가 늘 <b>1</b> — ${n}층을 곱해도 1. 그래서 요즘 은닉층의 기본입니다.</div>`;}
+single('[data-af]','af',v=>{afM=v;afDraw();});$('#afN').oninput=afDraw;
+
+/* ===== ④ 역전파 학습 ===== */
+let NN,bpN=0,bpLoss=[],bpSeed=7;
+function nnInit(){const r=rng(bpSeed++*131),g=()=>(r()*2-1);NN={W1:[[g(),g()],[g(),g()],[g(),g()],[g(),g()]],b1:[g(),g(),g(),g()],W2:[g(),g(),g(),g()],b2:g()};bpN=0;bpLoss=[];bpDraw();}
+function fwd(x){const z=NN.W1.map((w,j)=>w[0]*x[0]+w[1]*x[1]+NN.b1[j]),a=z.map(Math.tanh);const o=sig(a.reduce((s,v,j)=>s+v*NN.W2[j],NN.b2));return{a,o};}
+function trainStep(lr){const gW1=NN.W1.map(()=>[0,0]),gb1=[0,0,0,0],gW2=[0,0,0,0];let gb2=0,L=0;
+  XS.forEach((x,i)=>{const t=TG.xor[i],{a,o}=fwd(x);L+=(o-t)**2;const dO=2*(o-t)*o*(1-o);/* ∂L/∂출력 × ∂출력/∂z */gb2+=dO;a.forEach((aj,j)=>{gW2[j]+=dO*aj;const dA=dO*NN.W2[j]*(1-aj*aj);gb1[j]+=dA;gW1[j][0]+=dA*x[0];gW1[j][1]+=dA*x[1];});});
+  NN.b2-=lr*gb2/4;NN.W2=NN.W2.map((w,j)=>w-lr*gW2[j]/4);NN.b1=NN.b1.map((b,j)=>b-lr*gb1[j]/4);NN.W1=NN.W1.map((w,j)=>[w[0]-lr*gW1[j][0]/4,w[1]-lr*gW1[j][1]/4]);return L/4;}
+function bpDraw(){const{c,w,h}=prep($('#bpCv'),.5);const pw=h-20,ox=10,oy=10;
+  for(let px=0;px<pw;px+=4)for(let py=0;py<pw;py+=4){const x=[-.25+px/pw*1.5,1.25-py/pw*1.5];const o=fwd(x).o;c.fillStyle=`rgba(${Math.round(90+165*o)},${Math.round(90+40*o)},${Math.round(160-80*o)},.55)`;c.fillRect(ox+px,oy+py,4,4);}
+  XS.forEach(([a,b],i)=>{const X=ox+(a+.25)/1.5*pw,Y=oy+(1.25-b)/1.5*pw;c.beginPath();c.arc(X,Y,10,0,7);c.fillStyle=TG.xor[i]?CB:CA;c.fill();c.strokeStyle='#fff';c.lineWidth=2;c.stroke();});
+  /* 오차 곡선 */
+  const L=pw+30,R=w-10,Tp=16,B=h-20;c.strokeStyle='#33425a';c.beginPath();c.moveTo(L,Tp);c.lineTo(L,B);c.lineTo(R,B);c.stroke();T(c,'오차',L+4,Tp-6,'#a3b0c2',10,'left');T(c,'학습 →',R,B+12,'#a3b0c2',9,'right');
+  if(bpLoss.length>1){const mx=Math.max(.3,...bpLoss);c.strokeStyle='#ffd166';c.lineWidth=2;c.beginPath();bpLoss.forEach((v,i)=>{const x=L+i/(Math.max(bpLoss.length-1,1))*(R-L),y=B-v/mx*(B-Tp);i?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();}
+  const outs=XS.map(x=>fwd(x).o),acc=outs.filter((o,i)=>(o>.5?1:0)===TG.xor[i]).length,mse=outs.reduce((s,o,i)=>s+(o-TG.xor[i])**2,0)/4;
+  $('#bpN').textContent=bpN.toLocaleString();$('#bpE').textContent=mse.toFixed(4);$('#bpA').textContent=acc+'/4';$('#bpA').style.color=acc===4?'#6fdc9a':'#ffd166';
+  $('#bpOut').innerHTML=XS.map((x,i)=>`(${x}) → <span class="${(outs[i]>.5?1:0)===TG.xor[i]?'o':'e'}">${outs[i].toFixed(3)}</span>  <span class="p">목표 ${TG.xor[i]}</span>`).join('\n');}
+$('#bpGo').onclick=async()=>{const lr=+$('#bpLr').value;$('#bpGo').disabled=true;for(let k=0;k<10;k++){let l=0;for(let i=0;i<100;i++)l=trainStep(lr);bpN+=100;bpLoss.push(l);bpDraw();await new Promise(r=>setTimeout(r,40));}$('#bpGo').disabled=false;vib(20);
+  const acc=+$('#bpA').textContent[0];if(acc===4)toast('XOR 학습 성공!');};
+$('#bpReset').onclick=nnInit;$('#bpLr').oninput=()=>{$('#bpLrv').textContent=$('#bpLr').value;};
+
+/* 나의 예 */
+const MK='linklab.mine';let mine=[];try{mine=JSON.parse(localStorage.getItem(MK)||'[]');if(!Array.isArray(mine))mine=[];}catch(e){mine=[];}
+const saveM=()=>{try{localStorage.setItem(MK,JSON.stringify(mine));}catch(e){}};
+function drawMine(){$('#mine').innerHTML=mine.length?mine.map((m,i)=>`<div><span>🕸️ ${esc(m)}</span><button data-d="${i}" aria-label="지우기">✕</button></div>`).join(''):'<p class="note">우회로가 없는 그 한 곳이 바로 생활의 병목입니다.</p>';
+  $$('#mine button').forEach(b=>b.onclick=()=>{mine.splice(+b.dataset.d,1);saveM();drawMine();});}
+$('#myAdd').onclick=()=>{const v=$('#myIn').value.trim();if(!v)return;mine.unshift(v);mine=mine.slice(0,30);saveM();$('#myIn').value='';drawMine();toast('내 병목 기록!');};
+$('#myIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('#myAdd').click();});
+
+/* 탭 */
+function redraw(){if(!$('#tab-t1').hidden){djDraw();bfRun();}if(!$('#tab-t2').hidden){mfDraw();ceDraw();}if(!$('#tab-t3').hidden)pcDraw();if(!$('#tab-t4').hidden){hnDraw();afDraw();bpDraw();}}
+function show(t){$$('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));['t1','t2','t3','t4'].forEach(k=>$('#tab-'+k).hidden=k!==t);redraw();window.scrollTo(0,0);}
+$$('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(redraw,120);});
+djInit();mfReset();nnInit();drawMine();redraw();
+})();
+</script>
+</body>
+</html>
